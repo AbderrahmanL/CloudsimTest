@@ -7,10 +7,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
+import org.cloudbus.cloudsim.CloudletSchedulerSpaceShared;
 import org.cloudbus.cloudsim.Datacenter;
 import org.cloudbus.cloudsim.DatacenterBroker;
 import org.cloudbus.cloudsim.DatacenterCharacteristics;
+import org.cloudbus.cloudsim.File;
+import org.cloudbus.cloudsim.HarddriveStorage;
 import org.cloudbus.cloudsim.Host;
 import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Pe;
@@ -19,13 +21,15 @@ import org.cloudbus.cloudsim.UtilizationModel;
 import org.cloudbus.cloudsim.UtilizationModelFull;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmAllocationPolicySimple;
-import org.cloudbus.cloudsim.VmSchedulerTimeShared;
+import org.cloudbus.cloudsim.VmSchedulerSpaceShared;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
+import org.cloudbus.cloudsim.util.ExecutionTimeMeasurer;
 
 public class CloudSimExample1 {
+	private static final int CLOUDLET_COUNT = 1;
 	private static List<Cloudlet> cloudletList;
 	private static List<Vm> vmList;
 	
@@ -38,9 +42,34 @@ public class CloudSimExample1 {
 				boolean trace_flag = false ;
 				
 				CloudSim.init(num_user, calendar, trace_flag);
+				
+				  //Creating 3 Storages
+	            HarddriveStorage hd1 = new HarddriveStorage(1024);
+	            HarddriveStorage hd2 = new HarddriveStorage(1024);
+	            HarddriveStorage hd3 = new HarddriveStorage(1024);
+
+	            System.out.println("* * *");
+	            System.out.println("Used disk space on hd1=" + hd1.getCurrentSize());
+	            System.out.println("Used disk space on hd2=" + hd2.getCurrentSize());
+	            System.out.println("Used disk space on hd3=" + hd3.getCurrentSize());
+	            System.out.println("* * *");
+
+
+	            //Creating 3 Files
+	            //Attention: This is the "org.cloudbus.cloudsim.File" class!!
+	            File file1 = new File("file1.dat", 300);
+	            File file2 = new File("file2.dat", 300);
+	            File file3 = new File("file3.dat", 300);
+	            LinkedList<Storage> hdList = new LinkedList<Storage>();
+	            hdList.add(hd1);
+	            hdList.add(hd2);
+	            hdList.add(hd3);
 				//second step : Create datacenters we need at least one of them 
 				//to run a simulation
-				Datacenter datacenter0 = createDatacenter("Datacenter_0");
+				Datacenter datacenter0 = createDatacenter("Datacenter_0",hdList);
+				datacenter0.addFile(file1);
+				datacenter0.addFile(file2);
+				datacenter0.addFile(file3);
 				// Third step: Create Broker
 				DatacenterBroker broker = createBroker();
 				int brokerId = broker.getId();
@@ -51,14 +80,14 @@ public class CloudSimExample1 {
 				// VM description
 				int vmid = 0;
 				int mips = 1000;
-				long size = 10000; // image size (MB)
+				long size = 100000; // image size (MB)
 				int ram = 512; // vm memory (MB)
 				long bw = 1000;
 				int pesNumber = 1; // number of cpus
 				String vmm = "Xen"; // VMM name
 	
 				// create VM
-				Vm vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+				Vm vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
 	
 				// add the VM to the vmList
 				vmList.add(vm);
@@ -68,42 +97,67 @@ public class CloudSimExample1 {
 	
 				// Fifth step: Create one Cloudlet
 				cloudletList = new ArrayList<Cloudlet>();
-	
+			for(int i=0 ; i< CLOUDLET_COUNT ; i++) {
 				// Cloudlet properties
-				int id = 0;
-				long length = 400000;
+				int id = i;
+				long length = 400000000;
 				long fileSize = 300;
 				long outputSize = 300;
 				UtilizationModel utilizationModel = new UtilizationModelFull();
+				List<String> fileList = new ArrayList<String>();
+		         fileList.add("file1.dat");
+		         fileList.add("file2.dat");
+		         fileList.add("file3.dat");
 	
 				Cloudlet cloudlet = 
 	                                new Cloudlet(id, length, pesNumber, fileSize, 
 	                                        outputSize, utilizationModel, utilizationModel, 
-	                                        utilizationModel);
+	                                        utilizationModel,fileList);
 				cloudlet.setUserId(brokerId);
 				cloudlet.setVmId(vmid);
 	
 				// add the cloudlet to the list
 				cloudletList.add(cloudlet);
-	
+			}
 				// submit cloudlet list to the broker
 				broker.submitCloudletList(cloudletList);
+				ExecutionTimeMeasurer.start("simulation");
 				
 				// Sixth step: Starts the simulation
 				CloudSim.startSimulation();
-	
+				
 				CloudSim.stopSimulation();
-	
+				
+				System.out.println(ExecutionTimeMeasurer.end("simulation"));
 				//Final step: Print results when simulation is over
 				List<Cloudlet> newList = broker.getCloudletReceivedList();
-				printCloudletList(newList);
-	
+				//printCloudletList(newList);
+				printNotSuccess(newList);
+				 System.out.println("* * *");
+		            System.out.println("Used disk space on hd1=" + hd1.getCurrentSize());
+		            System.out.println("Used disk space on hd2=" + hd2.getCurrentSize());
+		            System.out.println("Used disk space on hd3=" + hd3.getCurrentSize());
+		            System.out.println("* * *");
+		            System.out.println(newList.get(0).getCloudletOutputSize()); 
 				Log.printLine("CloudSimExample1 finished!");
 				
 			}
 			catch(Exception e) {
 				e.printStackTrace();
 			}
+	}
+
+	private static void printNotSuccess(List<Cloudlet> list) {
+		int size = list.size();
+		Cloudlet cloudlet;
+		for (int i = 0; i < size; i++) {
+			cloudlet = list.get(i);
+
+			if (cloudlet.getCloudletStatus() != Cloudlet.SUCCESS) {
+				Log.print("NotSuccess");	
+			}
+		}
+		
 	}
 
 	private static void printCloudletList(List<Cloudlet> list) {
@@ -133,6 +187,8 @@ public class CloudSimExample1 {
 						+ indent + indent
 						+ dft.format(cloudlet.getFinishTime()));
 			}
+			else
+			Log.print("FAILURE");
 		}
 	}
 
@@ -147,7 +203,7 @@ public class CloudSimExample1 {
 		return broker;
 	}
 
-	private static Datacenter createDatacenter(String name) {
+	private static Datacenter createDatacenter(String name, LinkedList<Storage> hdList) {
 
 		// Here are the steps needed to create a PowerDatacenter:
 		// 1. We need to create a list to store
@@ -177,7 +233,7 @@ public class CloudSimExample1 {
 				new BwProvisionerSimple(bw),
 				storage,
 				peList,
-				new VmSchedulerTimeShared(peList)
+				new VmSchedulerSpaceShared(peList)
 			)
 		); // This is our machine
 
@@ -194,8 +250,7 @@ public class CloudSimExample1 {
 		double costPerStorage = 0.001; // the cost of using storage in this
 										// resource
 		double costPerBw = 0.0; // the cost of using bw in this resource
-		LinkedList<Storage> storageList = new LinkedList<Storage>(); // we are not adding SAN
-													// devices by now
+		LinkedList<Storage> storageList = hdList;
 
 		DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
 				arch, os, vmm, hostList, time_zone, cost, costPerMem,
