@@ -48,24 +48,17 @@ public class CloudSimExample1 {
 	            HarddriveStorage hd2 = new HarddriveStorage(1024);
 	            HarddriveStorage hd3 = new HarddriveStorage(1024);
 
-	            System.out.println("* * *");
-	            System.out.println("Used disk space on hd1=" + hd1.getCurrentSize());
-	            System.out.println("Used disk space on hd2=" + hd2.getCurrentSize());
-	            System.out.println("Used disk space on hd3=" + hd3.getCurrentSize());
-	            System.out.println("* * *");
-
-
 	            //Creating 3 Files
 	            //Attention: This is the "org.cloudbus.cloudsim.File" class!!
 	            File file1 = new File("file1.dat", 300);
 	            File file2 = new File("file2.dat", 300);
 	            File file3 = new File("file3.dat", 300);
+	            
 	            LinkedList<Storage> hdList = new LinkedList<Storage>();
 	            hdList.add(hd1);
 	            hdList.add(hd2);
-	            hdList.add(hd3);
-				//second step : Create datacenters we need at least one of them 
-				//to run a simulation
+	            hdList.add(hd3); 
+	            
 				Datacenter datacenter0 = createDatacenter("Datacenter_0",hdList);
 				datacenter0.addFile(file1);
 				datacenter0.addFile(file2);
@@ -100,7 +93,7 @@ public class CloudSimExample1 {
 			for(int i=0 ; i< CLOUDLET_COUNT ; i++) {
 				// Cloudlet properties
 				int id = i;
-				long length = 400000000;
+				long length = 40000;
 				long fileSize = 300;
 				long outputSize = 300;
 				UtilizationModel utilizationModel = new UtilizationModelFull();
@@ -112,7 +105,7 @@ public class CloudSimExample1 {
 				Cloudlet cloudlet = 
 	                                new Cloudlet(id, length, pesNumber, fileSize, 
 	                                        outputSize, utilizationModel, utilizationModel, 
-	                                        utilizationModel,fileList);
+	                                        utilizationModel);
 				cloudlet.setUserId(brokerId);
 				cloudlet.setVmId(vmid);
 	
@@ -131,7 +124,7 @@ public class CloudSimExample1 {
 				System.out.println(ExecutionTimeMeasurer.end("simulation"));
 				//Final step: Print results when simulation is over
 				List<Cloudlet> newList = broker.getCloudletReceivedList();
-				//printCloudletList(newList);
+				printCloudletList(newList);
 				printNotSuccess(newList);
 				 System.out.println("* * *");
 		            System.out.println("Used disk space on hd1=" + hd1.getCurrentSize());
